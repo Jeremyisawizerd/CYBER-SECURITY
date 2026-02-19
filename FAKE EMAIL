@@ -1,0 +1,247 @@
+"""
+Educational Email System Simulator
+For Zetech University Project - Demonstrates email concepts
+This is a simulation for learning purposes only
+"""
+
+import json
+import datetime
+import os
+from typing import List, Dict
+import getpass  # For password input (secure)
+
+class EmailMessage:
+    """Represents an email message"""
+    def __init__(self, sender, recipient, subject, body):
+        self.sender = sender
+        self.recipient = recipient
+        self.subject = subject
+        self.body = body
+        self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.is_read = False
+        self.message_id = f"{datetime.datetime.now().timestamp()}"
+    
+    def to_dict(self):
+        return {
+            "sender": self.sender,
+            "recipient": self.recipient,
+            "subject": self.subject,
+            "body": self.body,
+            "timestamp": self.timestamp,
+            "is_read": self.is_read,
+            "message_id": self.message_id
+        }
+
+class ZetechEmailSystem:
+    """Email system simulator for Zetech University"""
+    
+    def __init__(self, storage_file="email_storage.json"):
+        self.storage_file = storage_file
+        self.users = {}  # username: password (simplified)
+        self.emails = []  # List of all emails
+        self.current_user = None
+        self.load_data()
+        
+        # Add some demo users
+        self.add_demo_users()
+    
+    def add_demo_users(self):
+        """Add demo users for the project"""
+        demo_users = {
+            "student@zetechuniversity.ac.ke": "pass123",
+            "lecturer@zetechuniversity.ac.ke": "pass456",
+            "admin@zetechuniversity.ac.ke": "admin789"
+        }
+        self.users.update(demo_users)
+    
+    def load_data(self):
+        """Load existing emails from storage"""
+        if os.path.exists(self.storage_file):
+            try:
+                with open(self.storage_file, 'r') as f:
+                    data = json.load(f)
+                    self.emails = data.get('emails', [])
+            except:
+                self.emails = []
+    
+    def save_data(self):
+        """Save emails to storage"""
+        with open(self.storage_file, 'w') as f:
+            json.dump({'emails': self.emails}, f, indent=2)
+    
+    def login(self, email, password):
+        """Simulate user login"""
+        if email in self.users and self.users[email] == password:
+            self.current_user = email
+            print(f"\n✅ Welcome {email}!")
+            return True
+        print("\n❌ Invalid credentials")
+        return False
+    
+    def send_email(self, recipient, subject, body):
+        """Send an email (simulated)"""
+        if not self.current_user:
+            print("Please login first")
+            return False
+        
+        # Validate recipient format
+        if not recipient.endswith("@zetechuniversity.ac.ke"):
+            print("❌ Invalid recipient: Must be @zetechuniversity.ac.ke")
+            return False
+        
+        # Create email
+        email = EmailMessage(
+            sender=self.current_user,
+            recipient=recipient,
+            subject=subject,
+            body=body
+        )
+        
+        # Store email
+        self.emails.append(email.to_dict())
+        self.save_data()
+        
+        print(f"\n✅ Email sent successfully to {recipient}")
+        print(f"📧 Subject: {subject}")
+        print("(Simulated - stored locally)")
+        return True
+    
+    def receive_emails(self, show_all=False):
+        """Get emails for current user"""
+        if not self.current_user:
+            print("Please login first")
+            return []
+        
+        user_emails = []
+        for email in self.emails:
+            if email['recipient'] == self.current_user:
+                user_emails.append(email)
+            elif show_all:  # For admin view
+                user_emails.append(email)
+        
+        return sorted(user_emails, key=lambda x: x['timestamp'], reverse=True)
+    
+    def read_inbox(self):
+        """Display inbox for current user"""
+        if not self.current_user:
+            print("Please login first")
+            return
+        
+        emails = self.receive_emails()
+        
+        if not emails:
+            print("\n📪 Inbox empty")
+            return
+        
+        print(f"\n📫 INBOX for {self.current_user}")
+        print("-" * 60)
+        
+        for i, email in enumerate(emails, 1):
+            status = "📌" if not email['is_read'] else "  "
+            print(f"{i}. {status} From: {email['sender']}")
+            print(f"   Subject: {email['subject']}")
+            print(f"   Time: {email['timestamp']}")
+            print()
+    
+    def read_email(self, index):
+        """Read a specific email"""
+        emails = self.receive_emails()
+        
+        if 0 < index <= len(emails):
+            email = emails[index-1]
+            email['is_read'] = True
+            self.save_data()
+            
+            print("\n" + "="*60)
+            print(f"From: {email['sender']}")
+            print(f"To: {email['recipient']}")
+            print(f"Subject: {email['subject']}")
+            print(f"Date: {email['timestamp']}")
+            print("="*60)
+            print(f"\n{email['body']}\n")
+        else:
+            print("Invalid email index")
+    
+    def compose_email(self):
+        """Interactive email composition"""
+        if not self.current_user:
+            print("Please login first")
+            return
+        
+        print("\n📝 COMPOSE NEW EMAIL")
+        print("-" * 40)
+        
+        recipient = input("To (@zetechuniversity.ac.ke): ")
+        if not recipient.endswith("@zetechuniversity.ac.ke"):
+            recipient += "@zetechuniversity.ac.ke"
+        
+        subject = input("Subject: ")
+        print("Body (enter '.' on a new line to finish):")
+        
+        body_lines = []
+        while True:
+            line = input()
+            if line == ".":
+                break
+            body_lines.append(line)
+        
+        body = "\n".join(body_lines)
+        
+        self.send_email(recipient, subject, body)
+
+def main():
+    """Main program loop"""
+    print("=" * 60)
+    print("📧 ZETECH UNIVERSITY EMAIL SYSTEM DEMO")
+    print("Educational Project - Email Simulation")
+    print("=" * 60)
+    
+    email_system = ZetechEmailSystem()
+    
+    # Demo login prompt
+    print("\nDemo Accounts:")
+    print("- student@zetechuniversity.ac.ke (pass: pass123)")
+    print("- lecturer@zetechuniversity.ac.ke (pass: pass456)")
+    print("- admin@zetechuniversity.ac.ke (pass: admin789)")
+    
+    # Login loop
+    while not email_system.current_user:
+        print("\n--- LOGIN ---")
+        email = input("Email: ")
+        password = getpass.getpass("Password: ")
+        email_system.login(email, password)
+    
+    # Main menu
+    while True:
+        print(f"\n{'='*40}")
+        print(f"MAIN MENU - Logged in as: {email_system.current_user}")
+        print("1. 📫 Check Inbox")
+        print("2. 📝 Compose Email")
+        print("3. 👁️ Read Specific Email")
+        print("4. 🚪 Logout/Exit")
+        
+        choice = input("\nSelect option (1-4): ")
+        
+        if choice == "1":
+            email_system.read_inbox()
+        elif choice == "2":
+            email_system.compose_email()
+        elif choice == "3":
+            emails = email_system.receive_emails()
+            if emails:
+                try:
+                    email_index = int(input("Enter email number: "))
+                    email_system.read_email(email_index)
+                except ValueError:
+                    print("Please enter a valid number")
+            else:
+                print("No emails to read")
+        elif choice == "4":
+            print("\nThank you for using Zetech Email System Demo!")
+            print("Note: This is an educational simulation")
+            break
+        else:
+            print("Invalid option")
+
+if __name__ == "__main__":
+    main()
